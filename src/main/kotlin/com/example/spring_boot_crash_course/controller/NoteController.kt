@@ -3,7 +3,10 @@ package com.example.spring_boot_crash_course.controller
 import com.example.spring_boot_crash_course.controller.NoteController.NoteResponse
 import com.example.spring_boot_crash_course.database.model.Note
 import com.example.spring_boot_crash_course.database.repository.NoteRepository
+import jakarta.validation.Valid
+import jakarta.validation.constraints.NotBlank
 import org.bson.types.ObjectId
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import java.awt.Color
 import java.time.Instant
@@ -11,6 +14,7 @@ import kotlin.coroutines.RestrictsSuspension
 
 //POST https://localhost:8085/notes
 //GET https://localhost:8085/notes?ownerId=123
+//DELETE https://localhost:8085/notes/123
 
 
 
@@ -18,11 +22,13 @@ import kotlin.coroutines.RestrictsSuspension
 @RestController
 @RequestMapping("/notes")
 class NoteController(
-    private val repository: NoteRepository
+    private val repository: NoteRepository,
+    private val noteRepository: NoteRepository
 ) {
 
     data class NoteRequest(
         val id: String?,
+        @field:NotBlank(message = "Title cannot be blank.")
         val title: String,
         val content: String,
         val color: Long
@@ -38,8 +44,9 @@ class NoteController(
 
     @PostMapping
     fun save(
-        @RequestBody body: NoteRequest
+        @Valid @RequestBody body: NoteRequest,
     ): NoteResponse {
+        val ownerId = SecurityContextHolder.getContext().authentication.principal.toString()
         val note = repository.save(
             Note(
                 id = body.id?.let { ObjectId(it) } ?: ObjectId.get(),
@@ -47,20 +54,30 @@ class NoteController(
                 content = body.content,
                 color = body.color,
                 createAt = Instant.now(),
-                ownerId = ObjectId()
+                ownerId = ObjectId(ownerId)
             )
         )
         return note.toResponse()
     }
 
     @GetMapping
-    fun findByOwnerId(
-        @RequestParam(required = true) ownerId: String
-    ): List<NoteResponse> {
+    fun findByOwnerId(): List<NoteResponse> {
+        val ownerId = SecurityContextHolder.getContext().authentication.principal.toString()
         return repository.findByOwnerId(ObjectId(ownerId)).map{
             it.toResponse()
         }
 
+    }
+
+    @DeleteMapping(path = ["/{id}"])
+    fun deleteById(@PathVariable id: String){
+        val note = noteRepository.findById(ObjectId(id)).orElseThrow(){
+            IllegalArgumentException("Note not found.")
+        }
+        val ownerId = SecurityContextHolder.getContext().authentication.principal.toString()
+        if(note.ownerId.toHexString() == ownerId){
+            repository.deleteById(ObjectId(id))
+        }
     }
 }
 
