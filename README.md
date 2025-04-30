@@ -1,4 +1,4 @@
-# Spring Boot Crash Course
+# Spring Boot MONGODB Backend
 
 ## Overview
 This repository contains a Spring Boot application built with Kotlin that demonstrates a RESTful API for managing notes. The application uses MongoDB as the database, Spring Security for authentication and authorization, and Spring WebFlux for reactive programming.
@@ -86,13 +86,6 @@ The application is configured with a basic security setup that:
 ```bash
 ./gradlew test
 ```
-
-## Future Enhancements
-- User authentication and registration
-- Role-based access control
-- Note sharing functionality
-- Search and filtering capabilities
-- Real-time updates using WebSocket
 
 ## License
 This project is open source and available under the [MIT License](LICENSE). 
